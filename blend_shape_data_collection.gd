@@ -1,4 +1,4 @@
+@tool
 extends Resource
-tool
 
-export (Array) var blend_shape_data: Array = []
+@export  var blend_shape_data: Array # (Array) = []

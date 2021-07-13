@@ -1,8 +1,8 @@
-tool
+@tool
 extends EditorPlugin
 
 
-func _init() -> void:
+func _init():
 	print("Initialising MeshCombiner plugin")
 
 
@@ -12,5 +12,5 @@ func _notification(p_notification: int):
 			print("Destroying MeshCombiner plugin")
 
 
-func get_name() -> String:
+func _get_plugin_name() -> String:
 	return "MeshCombiner"

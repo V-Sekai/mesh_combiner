@@ -1,6 +1,6 @@
-tool
-extends Reference
-class_name MeshCombiner
+@tool
+class_name MeshCombiner extends RefCounted
+
 
 const SURFACE_FORMAT_BITS = (
 	ArrayMesh.ARRAY_FORMAT_VERTEX
@@ -28,8 +28,8 @@ static func get_surface_arrays_format(p_surface_arrays: Array) -> int:
 			format |= (1 << i)
 	return format
 
-static func convert_vector2_to_vector3_pool_array(p_vec2_array: PoolVector2Array) -> PoolVector3Array:
-	var out: PoolVector3Array = PoolVector3Array()
+static func convert_vector2_to_vector3_pool_array(p_vec2_array: PackedVector2Array) -> PackedVector3Array:
+	var out: PackedVector3Array = PackedVector3Array()
 	for i in range(0, p_vec2_array.size()):
 		out.append(Vector3(p_vec2_array[i].x, p_vec2_array[i].y, 0.0))
 
@@ -61,8 +61,9 @@ func generate_mesh(p_compression_flags: int = 0) -> ArrayMesh:
 		mesh.add_blend_shape(blend_shape_name)
 
 	for surface in surfaces:
+		var lods: Dictionary = {} # TODO: Implement lods
 		mesh.add_surface_from_arrays(
-			surface.primitive, surface.arrays, surface.morph_arrays, p_compression_flags
+			surface.primitive, surface.arrays, surface.morph_arrays, lods, p_compression_flags
 		)
 		mesh.surface_set_name(mesh.get_surface_count() - 1, surface.name)
 		mesh.surface_set_material(mesh.get_surface_count() - 1, surface.material)
@@ -80,7 +81,7 @@ static func combine_surface_arrays(
 	p_uv_max = Vector2(1.0, 1.0),
 	p_uv2_min = Vector2(0.0, 0.0),
 	p_uv2_max = Vector2(1.0, 1.0),
-	p_transform = Transform(),
+	p_transform = Transform3D(),
 	p_weld_distance = -1.0
 ) -> Array:
 	var combined_surface_array: Array = []
@@ -95,7 +96,7 @@ static func combine_surface_arrays(
 				original_array = p_original_arrays[array_index]
 
 			if array_index == ArrayMesh.ARRAY_INDEX:
-				combined_array = PoolIntArray()
+				combined_array = PackedInt64Array()
 				var original_surface_index_count = 0
 
 				if typeof(p_original_arrays) == TYPE_ARRAY:
@@ -114,16 +115,16 @@ static func combine_surface_arrays(
 					or array_index == ArrayMesh.ARRAY_WEIGHTS
 					or array_index == ArrayMesh.ARRAY_BONES
 				):
-					combined_array = PoolRealArray()
+					combined_array = PackedFloat32Array()
 				elif array_index == ArrayMesh.ARRAY_COLOR:
-					combined_array = PoolColorArray()
+					combined_array = PackedColorArray()
 				elif (
 					array_index == ArrayMesh.ARRAY_TEX_UV
 					or array_index == ArrayMesh.ARRAY_TEX_UV2
 				):
-					combined_array = PoolVector2Array()
+					combined_array = PackedVector2Array()
 				else:
-					combined_array = PoolVector3Array()
+					combined_array = PackedVector3Array()
 
 				if typeof(original_array) != TYPE_NIL:
 					for i in range(0, original_array.size()):
@@ -158,12 +159,12 @@ static func combine_surface_arrays(
 									+ (new_array[i] * uv_max3) * (Vector3(1.0, 1.0, 0.0) - uv_min3)
 								)
 							)
-					elif (array_index == ArrayMesh.ARRAY_VERTEX) and p_transform != Transform():
+					elif (array_index == ArrayMesh.ARRAY_VERTEX) and p_transform != Transform3D():
 						# If a p_weld_distance is specified, we will attempt to copy the closest existing vertex
 						# already in the array in order to avoid cracks in the final mesh.
 						if p_weld_distance >= 0.0:
 							for i in range(0, new_array.size()):
-								var new_vertex = p_transform.xform(new_array[i])
+								var new_vertex = p_transform*(new_array[i])
 								if typeof(original_array) == TYPE_VECTOR3_ARRAY:
 									for j in range(0, original_array.size()):
 										if (
@@ -175,10 +176,10 @@ static func combine_surface_arrays(
 								combined_array.append(new_vertex)
 						else:
 							for i in range(0, new_array.size()):
-								combined_array.append(p_transform.xform(new_array[i]))
-					elif (array_index == ArrayMesh.ARRAY_NORMAL) and p_transform != Transform():
+								combined_array.append(p_transform*(new_array[i]))
+					elif (array_index == ArrayMesh.ARRAY_NORMAL) and p_transform != Transform3D():
 						for i in range(0, new_array.size()):
-							combined_array.append(p_transform.basis.xform(new_array[i]))
+							combined_array.append(p_transform.basis*(new_array[i]))
 					else:
 						for i in range(0, new_array.size()):
 							combined_array.append(new_array[i])
@@ -211,12 +212,12 @@ func append_mesh(
 	p_uv_max = Vector2(1.0, 1.0),
 	p_uv2_min = Vector2(0.0, 0.0),
 	p_uv2_max = Vector2(1.0, 1.0),
-	p_transform = Transform(),
-	p_bone_remaps = PoolIntArray(),
+	p_transform = Transform3D(),
+	p_bone_remaps = PackedInt64Array(),
 	p_weld_distance = -1.0
 ):
 	if p_addition_mesh is ArrayMesh or p_addition_mesh is PrimitiveMesh:
-		var new_append_mesh_combiner = Reference.new()
+		var new_append_mesh_combiner = RefCounted.new()
 		new_append_mesh_combiner.set_script(get_script())
 
 		if p_addition_mesh is ArrayMesh:
@@ -312,7 +313,7 @@ func append_mesh_combiner(
 	p_uv_max = Vector2(1.0, 1.0),
 	p_uv2_min = Vector2(0.0, 0.0),
 	p_uv2_max = Vector2(1.0, 1.0),
-	p_transform = Transform(),
+	p_transform = Transform3D(),
 	p_weld_distance = -1.0,
 	p_bone_remaps = []
 ):
@@ -522,16 +523,16 @@ func append_mesh_combiner(
 					)
 
 			# Transform the verticies
-			if p_transform != Transform():
+			if p_transform != Transform3D():
 				if new_surface.arrays.size() >= ArrayMesh.ARRAY_VERTEX:
 					var vertex_array = new_surface.arrays[ArrayMesh.ARRAY_VERTEX]
 					for j in range(0, vertex_array.size()):
-						vertex_array[j] = p_transform.xform(vertex_array[j])
+						vertex_array[j] = p_transform*(vertex_array[j])
 					new_surface.arrays[ArrayMesh.ARRAY_VERTEX] = vertex_array
 				if new_surface.arrays.size() >= ArrayMesh.ARRAY_NORMAL:
 					var normal_array = new_surface.arrays[ArrayMesh.ARRAY_NORMAL]
 					for j in range(0, normal_array.size()):
-						normal_array[j] = p_transform.basis.xform(normal_array[j])
+						normal_array[j] = p_transform.basis*(normal_array[j])
 					new_surface.arrays[ArrayMesh.ARRAY_NORMAL] = normal_array
 
 			surfaces.append(new_surface)
@@ -550,8 +551,8 @@ func remove_blend_shape(p_blend_shape_name: String) -> void:
 			surface.morph_arrays.remove(index)
 
 
-static func combine_skeletons(p_target_skeleton: Skeleton, p_addition_skeleton: Skeleton) -> PoolIntArray:
-	var bone_remap_table: PoolIntArray = PoolIntArray()
+static func combine_skeletons(p_target_skeleton: Skeleton3D, p_addition_skeleton: Skeleton3D) -> PackedInt64Array:
+	var bone_remap_table: PackedInt64Array = PackedInt64Array()
 
 	for i in range(0, p_addition_skeleton.get_bone_count()):
 		var addition_bone_name: String = p_addition_skeleton.get_bone_name(i)

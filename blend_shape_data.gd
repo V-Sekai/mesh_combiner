@@ -1,19 +1,19 @@
-extends Resource
-class_name BlendShapeData, "icon_blend_shape_data.svg"
-tool
+@tool
+class_name BlendShapeData, "icon_blend_shape_data.svg" extends Resource
+
 
 
 # Todo: cannot serialize this as a subresource from another resource. Bug?
 class BlendShapeSurface:
 	extends Resource
-	export (String) var name: String = ""
-	export (PoolIntArray) var index_array: PoolIntArray = PoolIntArray()
-	export (PoolVector3Array) var position_array: PoolVector3Array = PoolVector3Array()
-	export (PoolVector3Array) var normal_array: PoolVector3Array = PoolVector3Array()
+	@export var name: String = ""
+	@export var index_array: PackedInt64Array = PackedInt64Array()
+	@export var position_array: PackedVector3Array = PackedVector3Array()
+	@export var normal_array: PackedVector3Array = PackedVector3Array()
 
 
-export (String) var name: String = ""
-export (Array) var surfaces: Array = []
+@export  var name: String # (String) = ""
+@export  var surfaces: Array # (Array) = []
 
 
 func clear_surfaces() -> void:

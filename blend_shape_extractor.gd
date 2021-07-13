@@ -1,9 +1,9 @@
-extends Reference
-tool
+@tool
+extends RefCounted
 
 
 class BlendVertex:
-	extends Reference
+	extends RefCounted
 	var position: Vector3 = Vector3()
 	var normal: Vector3 = Vector3()
 
@@ -43,9 +43,9 @@ static func extract_blend_shape_from_mesh_combiner(
 		for mesh_surface in p_mesh_combiner.surfaces:
 			var blend_shape_surface: Dictionary = {}
 			blend_shape_surface["name"] = mesh_surface.name
-			blend_shape_surface["index_array"] = PoolIntArray()
-			blend_shape_surface["position_array"] = PoolVector3Array()
-			blend_shape_surface["normal_array"] = PoolVector3Array()
+			blend_shape_surface["index_array"] = PackedInt64Array()
+			blend_shape_surface["position_array"] = PackedVector3Array()
+			blend_shape_surface["normal_array"] = PackedVector3Array()
 
 			var base_arrays: Array = mesh_surface.arrays
 			var blend_shape_arrays: Array = mesh_surface.morph_arrays[index]
@@ -71,9 +71,9 @@ static func extract_blend_shape_from_mesh_combiner(
 							blend_verticies = insert_blend_vertex_ret["blend_verticies"]
 							format = insert_blend_vertex_ret["format"]
 
-			var index_array: PoolIntArray = PoolIntArray()
-			var position_array: PoolVector3Array = PoolVector3Array()
-			var normal_array: PoolVector3Array = PoolVector3Array()
+			var index_array: PackedInt64Array = PackedInt64Array()
+			var position_array: PackedVector3Array = PackedVector3Array()
+			var normal_array: PackedVector3Array = PackedVector3Array()
 
 			for blend_index in blend_verticies.keys():
 				var blend_vertex: Dictionary = blend_verticies[blend_index]
